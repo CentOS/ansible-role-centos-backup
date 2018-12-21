@@ -1,0 +1,12 @@
+---
+# defaults file for centos-backup
+centos_backup_user: backup
+# List of IPs from where central backup servers are pulling from
+centos_backup_ip_from:
+  - 192.168.1.1
+centos_backup_user_keys:
+  - ssh-rsa booboobooboo
+
+# What to backup
+centos_backup_folders:
+  - /etc

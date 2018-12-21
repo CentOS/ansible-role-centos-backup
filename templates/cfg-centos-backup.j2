@@ -1,0 +1,5 @@
+# This file contains the local folders to be backed up locally
+# This file is ansible managed so Don't edit ! 
+{% for folder in centos_backup_folders %}
+{{ folder }}
+{% endfor %}

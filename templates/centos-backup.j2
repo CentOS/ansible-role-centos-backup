@@ -1,0 +1,57 @@
+#!/bin/bash
+# Managed by ansible !
+
+TGTUser={{ centos_backup_user }}
+TGTGrp={{ centos_backup_user }}
+TGTDir=/home/{{ centos_backup_user }}
+STAMP=$(date +%Y%m%d%H%M%S)
+FOLDER_LIST_FILE="/etc/centos-backup"
+
+function do_bkup() {
+  nice_name=$(echo $1|sed s#/##1|sed s#/#-#g|sed s#'-$'##)
+  tar czf $TGTDir/$nice_name.$STAMP.tgz $1/ >/dev/null 2>&1
+  chown $TGTUser:$TGTGrp $TGTDir/$nice_name.$STAMP.tgz
+}
+
+function do_mysql_bkup() {
+  for db in $(echo "show databases;"|mysql|egrep -v 'Database|information_schema|performance_schema');
+  do
+    # We can now default to those settings as all innodb everywhere
+    mysql_opts="--skip-lock-tables --single-transaction"
+    mysqldump ${mysql_opts} ${db} | gzip > $TGTDir/mysql-${db}-$STAMP.sql.gz   
+    chown $TGTUser:$TGTGrp $TGTDir/mysql-${db}-$STAMP.sql.gz
+  done
+}
+
+function do_pgsql_bkup() {
+  for db in $(su -c "/usr/bin/psql -l -t -q" - postgres|grep '|' |awk '{print $1}'| grep -v template);
+  do
+    su -c "/usr/bin/pg_dump $db" - postgres | gzip > $TGTDir/pgsql-${db}-$STAMP.sql.gz
+    chown $TGTUser:$TGTGrp $TGTDir/pgsql-${db}-$STAMP.sql.gz
+  done
+
+}
+
+# Removing older local backups
+find ${TGTDir} -mmin +1440 -type f -name \*.tgz -exec rm -f {} \;
+find ${TGTDir} -mmin +1440 -type f -name \*.sql.gz -exec rm -f {} \;
+
+# Launching real backup
+for folder in $(grep -v ^# ${FOLDER_LIST_FILE});
+ do
+   do_bkup $folder 
+done
+
+# Checking if mysql installed/running and backup too
+ps aux|grep -q [m]ysqld
+if [ "$?" = "0" ] ; then
+ do_mysql_bkup
+fi
+
+# Checking if postgresql installed/running
+ps aux|grep -q [p]ostmaster
+if [ "$?" = "0" ] ; then
+ do_pgsql_bkup
+fi
+
+
