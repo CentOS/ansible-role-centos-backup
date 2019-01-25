@@ -32,6 +32,12 @@ function do_pgsql_bkup() {
 
 }
 
+function do_mongo_bkup() {
+  test -d $TGTDir/mongodumps || mkdir -p $TGTDir/mongodumps
+  mongodump --quiet --out=$TGTDir/mongodumps/
+  chown -R $TGTUser:$TGTGrp $TGTDir/mongodumps
+}
+
 # Removing older local backups
 find ${TGTDir} -mmin +1440 -type f -name \*.tgz -exec rm -f {} \;
 find ${TGTDir} -mmin +1440 -type f -name \*.sql.gz -exec rm -f {} \;
@@ -53,5 +59,12 @@ ps aux|grep -q [p]ostmaster
 if [ "$?" = "0" ] ; then
  do_pgsql_bkup
 fi
+
+# Checking if mongo installed/running
+ps aux|grep -q [m]ongodb
+if [ "$?" = "0" ] ; then
+ do_mongo_bkup
+fi
+
 
 
