@@ -24,7 +24,7 @@ function do_mysql_bkup() {
 }
 
 function do_pgsql_bkup() {
-  for db in $(su -c "/usr/bin/psql -l -t -q" - postgres|grep '|' |awk '{print $1}'| grep -v template);
+  for db in $(su -c "/usr/bin/psql -l -t -q" - postgres|grep '|' |awk '{print $1}'| egrep -v "template|\|");
   do
     su -c "/usr/bin/pg_dump $db" - postgres | gzip > $TGTDir/pgsql-${db}-$STAMP.sql.gz
     chown $TGTUser:$TGTGrp $TGTDir/pgsql-${db}-$STAMP.sql.gz
@@ -55,7 +55,7 @@ if [ "$?" = "0" ] ; then
 fi
 
 # Checking if postgresql installed/running
-ps aux|grep -q [p]ostmaster
+ps aux|egrep -q '[p]ostgres|[p]ostmaster'
 if [ "$?" = "0" ] ; then
  do_pgsql_bkup
 fi
