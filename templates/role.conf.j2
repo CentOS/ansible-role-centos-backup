@@ -1,0 +1,5 @@
+# This file contains the local folders to be backed up locally for the ansible role {{ centos_role }}
+# This file is ansible managed so Don't edit ! 
+{% for folder in role_backup_folders %}
+{{ folder }}
+{% endfor %}

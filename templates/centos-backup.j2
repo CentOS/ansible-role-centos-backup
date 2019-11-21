@@ -6,6 +6,7 @@ TGTGrp={{ centos_backup_user }}
 TGTDir=/home/{{ centos_backup_user }}
 STAMP=$(date +%Y%m%d%H%M%S)
 FOLDER_LIST_FILE="/etc/centos-backup"
+FOLDER_LIST_DIR="/etc/centos-backup.d"
 
 function do_bkup() {
   nice_name=$(echo $1|sed s#/##1|sed s#/#-#g|sed s#'-$'##)
@@ -43,7 +44,7 @@ find ${TGTDir} -mmin +1440 -type f -name \*.tgz -exec rm -f {} \;
 find ${TGTDir} -mmin +1440 -type f -name \*.sql.gz -exec rm -f {} \;
 
 # Launching real backup
-for folder in $(grep -v ^# ${FOLDER_LIST_FILE});
+for folder in $(cat ${FOLDER_LIST_DIR}/*.conf ${FOLDER_LIST_FILE} 2>/dev/null |grep -v '^#'|sort|uniq);
  do
    do_bkup $folder 
 done

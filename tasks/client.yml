@@ -15,9 +15,12 @@
 
 - name: Ensuring we have a place to store centos infra scripts
   file:
-    path: /usr/libexec/centos                                                                                    
+    path: "{{ item }}"                                                                                   
     state: directory
-  
+  with_items:
+    - /usr/libexec/centos
+    - /etc/centos-backup.d
+
 - name: Configuring backup tool
   template:
     src: cfg-centos-backup.j2
@@ -25,6 +28,17 @@
     owner: root
     group: root
     mode: 0700
+
+- name: Configuring role backup snippet
+  template:
+    src: role.conf.j2
+    dest: "/etc/centos-backup.d/{{ centos_role }}.conf"
+    owner: root
+    group: root
+    mode: 0700
+  when: centos_role is defined
+  tags:
+    - backup
 
 - name: Importing backup tool script
   template:
