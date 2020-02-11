@@ -1,5 +1,8 @@
 ---
-# defaults file for centos-backup
+# This role contains the main task (on nodes to be backed-up)
+# and the server task (pulling centrally)
+
+# defaults variables for centos-backup / client task
 centos_backup_user: backup
 # List of IPs from where central backup servers are pulling from
 centos_backup_ip_from:
@@ -10,3 +13,26 @@ centos_backup_user_keys:
 # What to backup
 centos_backup_folders:
   - /etc
+
+# Server part
+# Are we pulling from other nodes ?
+centos_backup_server: False
+centos_backup_server_repodir: /backup/pool
+centos_backup_server_logdir: /backup/logs
+# use restic at the end for local snapshots
+centos_backup_server_restic: False
+centos_backup_server_restic_repo: /backup/snapshots
+centos_backup_server_restic_pass: boo
+
+# Where to send notifications for backup
+centos_backup_server_zabbix_srv: zabbix.domain.com
+
+# Which machines we want to pull data from
+#centos_backup_server_nodes_list:
+#  - host: node
+#    src_path: backup@node:/home/backup/
+#  - host: other
+#    src_path: node.fqdn::rsync_module/
+ 
+centos_backup_server_nodes_list: []
+     

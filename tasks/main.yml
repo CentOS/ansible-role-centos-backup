@@ -1,2 +1,5 @@
 ---
 # tasks file for centos-backup
+- include_tasks: client.yml
+- include_tasks: server.yml
+  when: centos_backup_server

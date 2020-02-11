@@ -1,0 +1,84 @@
+#!/bin/bash
+
+#
+# This script will pull local backup from various nodes through rsync over ssh or plain rsync
+# Log to a file what was changed and also update zabbix about status
+# When done, we can (eventually) call restic for snapshots for retention policy
+#
+PATH=$PATH:/usr/local/bin:/sbin:/usr/sbin/
+backup_repodir="{{ centos_backup_server_repodir }}"
+backup_logdir="{{ centos_backup_server_logdir }}"
+logfile="{{ centos_backup_server_logdir }}/centos-backup-pull.log"
+today=$(date +%Y%m%d%H%M)
+lock_file="/var/tmp/centos-backup-pull.lck"
+{% if centos_backup_server_restic %}
+export RESTIC_REPOSITORY="{{ centos_backup_server_restic_repo }}"
+export RESTIC_PASSWORD="{{ centos_backup_server_restic_pass }}"
+{% endif %}
+
+# Functions
+f_log() {
+   echo "[+] $(date +%Y%m%d-%H:%M) centos-backup-pull -> $*" >>$logfile
+}
+
+# Starting backup
+if [ -e ${lock_file} ] ; then
+  f_log "${lock_file} still there so other sync in progress ..."
+  f_log "Exiting ..."
+  exit
+fi
+
+f_log "=== Starting CentOS central backup job ==="
+touch ${lock_file}
+
+# Now all the nodes coming from ansible centos_backup_server_nodes_list
+{% for item in centos_backup_server_nodes_list %}
+f_log "[{{ item.host }}] backing up {{ item.src_path }} ..." 
+targetdir=$(echo {{ item.src_path }}|rev|cut -f 1 -d ':'|rev)
+test -d ${backup_repodir}/{{ item.host }}/${targetdir} || mkdir -p ${backup_repodir}/{{ item.host }}/${targetdir} 
+rsync -avH --delete-before {{ item.src_path }}/ ${backup_repodir}/{{ item.host }}/${targetdir}/ > {{ centos_backup_server_logdir }}/{{ item.host }}-${today}.log 2>&1
+backupResult="$?"
+if [ "$backupResult" -ne "0" ] ; then
+  f_log "[{{ item.host }}] : Backup FAILED for ${targetdir}"
+  zabbix_sender -z {{ centos_backup_server_zabbix_srv }} --host {{ item.host }} --key backup.status --value 1 >/dev/null 2>&1
+else
+  f_log "[{{ item.host }}] : Backup OK for ${targetdir}"
+  zabbix_sender -z {{ centos_backup_server_zabbix_srv }} --host {{ item.host }} --key backup.status --value 0 >/dev/null 2>&1
+fi
+# Cleaning up old logfiles
+find {{ centos_backup_server_logdir }} -mtime +7 -type f -name {{ item.host }}\*.log -exec rm -f {} \;
+
+{% endfor %}
+f_log "Finished pulling from clients nodes"
+
+
+{% if centos_backup_server_restic %}
+f_log "Starting Restic job"
+# This part is included only if we want local restic snapshots
+# Verify if we can reach repo or init it if empty
+restic --quiet snapshots >/dev/null 2>&1
+if [ "$?" -ne "0" ] ;then
+  # Trying to init and exit if failing
+  f_log "Repository ${RESTIC_REPOSITORY} not accessible/initiliazed"
+  f_log "Verifying if we can init or then maybe PASSWORD for repo is incorrect"
+  restic init >>$logfile
+fi
+# Now calling restic
+f_log "Calling restic for backup archives/snapshots"
+restic backup {{ centos_backup_server_repodir }} >>$logfile
+if [ "$?" -ne "0" ] ;then
+  f_log "Local restic snapshot failed !"
+fi
+dow=$(date +%A)
+if [ "$dow" = "Sunday" ] ; then
+  f_log "Pruning old restic snapshots from archives"
+  restic forget --keep-last 5 --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune >>$logfile
+  f_log "Restic prune job finished"
+fi
+{% endif %}
+
+
+# We're now done
+# Removing lock at the end
+f_log "=== CentOS central backup job finished ==="
+/bin/rm ${lock_file}

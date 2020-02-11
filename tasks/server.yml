@@ -1,0 +1,32 @@
+- include_role: 
+    name: restic
+  when: centos_backup_server_restic 
+
+- name: Ensuring we have needed directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ centos_backup_server_repodir }}"
+    - "{{ centos_backup_server_logdir }}"
+
+- name: Ensuring we have needed directory - restic
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ centos_backup_server_restic_repo }}"
+  when: centos_backup_server_restic
+
+- name: Script to pull centrally from other nodes
+  template:
+    src: "{{ item }}.j2"
+    dest: "/usr/libexec/centos/{{ item }}"
+    owner: root
+    group: root
+    mode: 0750
+  with_items:
+    - centos-backup-pull
+    - centos-backup-restic-mount
+  tags:
+    - config
