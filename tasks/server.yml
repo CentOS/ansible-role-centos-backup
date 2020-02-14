@@ -30,3 +30,11 @@
     - centos-backup-restic-mount
   tags:
     - config
+
+- name: Cron job for centos-backup-pull
+  cron:
+    name: "CentOS central backup"
+    job: /usr/libexec/centos/centos-backup-pull
+    hour: "{{ centos_backup_server_cron_hour }}"
+    minute: "{{ centos_backup_server_cron_minute }}"
+  when: centos_backup_server_cron

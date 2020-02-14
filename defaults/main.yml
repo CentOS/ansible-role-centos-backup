@@ -35,4 +35,8 @@ centos_backup_server_zabbix_srv: zabbix.domain.com
 #    src_path: node.fqdn::rsync_module/
  
 centos_backup_server_nodes_list: []
-     
+
+# We can use cron, but by default disabled
+centos_backup_server_cron: False
+centos_backup_server_cron_hour: "1"
+centos_backup_server_cron_minute: "10"

@@ -21,10 +21,17 @@ f_log() {
    echo "[+] $(date +%Y%m%d-%H:%M) centos-backup-pull -> $*" >>$logfile
 }
 
-# Starting backup
+# Starting backup and alerting if another one is running for more than 24h
 if [ -e ${lock_file} ] ; then
   f_log "${lock_file} still there so other sync in progress ..."
   f_log "Exiting ..."
+  last_access=$(/usr/bin/stat --format %X ${lock_file})
+  now_epoch=$(date +%s)
+  time_diff=$(( ${now_epoch} - ${last_access}))
+  if [ ${time_diff} -gt "86400" ] ;then
+    zabbix_sender -c /etc/zabbix/zabbix_agentd.conf --key cbackup.status --value 1 >/dev/null 2>&1
+    f_log "Backup stuck for more than 24 hours - alerting through zabbix" 
+  fi
   exit
 fi
 
@@ -67,7 +74,9 @@ fi
 f_log "Calling restic for backup archives/snapshots"
 restic backup {{ centos_backup_server_repodir }} >>$logfile
 if [ "$?" -ne "0" ] ;then
-  f_log "Local restic snapshot failed !"
+  zabbix_sender -c /etc/zabbix/zabbix_agentd.conf --key cbackup.status --value 1 >/dev/null 2>&1
+  f_log "Local restic snapshot failed - exiting now and alerting Zabbix"
+  exit
 fi
 dow=$(date +%A)
 if [ "$dow" = "Sunday" ] ; then
@@ -82,3 +91,4 @@ fi
 # Removing lock at the end
 f_log "=== CentOS central backup job finished ==="
 /bin/rm ${lock_file}
+zabbix_sender -c /etc/zabbix/zabbix_agentd.conf --key cbackup.status --value 0 >/dev/null 2>&1
