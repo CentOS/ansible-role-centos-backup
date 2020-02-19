@@ -38,6 +38,9 @@ fi
 f_log "=== Starting CentOS central backup job ==="
 touch ${lock_file}
 
+# Defaulting to successful backup at the beginning
+export centos_backup_status="0"
+
 # Now all the nodes coming from ansible centos_backup_server_nodes_list
 {% for item in centos_backup_server_nodes_list %}
 f_log "[{{ item.host }}] backing up {{ item.src_path }} ..." 
@@ -47,10 +50,10 @@ rsync -avH --delete-before {{ item.src_path }}/ ${backup_repodir}/{{ item.host }
 backupResult="$?"
 if [ "$backupResult" -ne "0" ] ; then
   f_log "[{{ item.host }}] : Backup FAILED for ${targetdir}"
-  zabbix_sender -z {{ centos_backup_server_zabbix_srv }} --host {{ item.host }} --key backup.status --value 1 >/dev/null 2>&1
+  # Globally set the backup job as failed, and a need to see in log file
+  export centos_backup_status="1"
 else
   f_log "[{{ item.host }}] : Backup OK for ${targetdir}"
-  zabbix_sender -z {{ centos_backup_server_zabbix_srv }} --host {{ item.host }} --key backup.status --value 0 >/dev/null 2>&1
 fi
 # Cleaning up old logfiles
 find {{ centos_backup_server_logdir }} -mtime +7 -type f -name {{ item.host }}\*.log -exec rm -f {} \;
@@ -91,4 +94,4 @@ fi
 # Removing lock at the end
 f_log "=== CentOS central backup job finished ==="
 /bin/rm ${lock_file}
-zabbix_sender -c /etc/zabbix/zabbix_agentd.conf --key cbackup.status --value 0 >/dev/null 2>&1
+zabbix_sender -c /etc/zabbix/zabbix_agentd.conf --key cbackup.status --value ${centos_backup_status} >/dev/null 2>&1
