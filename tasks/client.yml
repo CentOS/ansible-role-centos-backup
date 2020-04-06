@@ -1,5 +1,5 @@
 # This task is the client task to be included on each node to be backed_up
-- name: Ensuring local user {{ centos_backup_user }} exists
+- name: Ensuring local user "{{ centos_backup_user }}" exists
   user:
     name: "{{ centos_backup_user }}"
     comment: CentOS Backup user
@@ -7,7 +7,7 @@
     append: yes
     state: present
 
-- name: Importing {{ centos_backup_user }} ssh pub key
+- name: Importing "{{ centos_backup_user }}" ssh pub key
   authorized_key:
     user: "{{ centos_backup_user }}"
     key: "{{ item }}"
@@ -52,8 +52,8 @@
   cron:
     name: CentOS Infra backup
     job: /usr/libexec/centos/centos-backup
-    minute: 5
-    hour: 1
+    minute: "5"
+    hour: "1"
     state: present
 
 - name: Ensuring old script tool from puppet is empty
