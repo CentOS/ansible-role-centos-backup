@@ -48,12 +48,12 @@ targetdir=$(echo {{ item.src_path }}|rev|cut -f 1 -d ':'|rev)
 test -d ${backup_repodir}/{{ item.host }}/${targetdir} || mkdir -p ${backup_repodir}/{{ item.host }}/${targetdir} 
 rsync -avH --delete-before {{ item.src_path }}/ ${backup_repodir}/{{ item.host }}/${targetdir}/ > {{ centos_backup_server_logdir }}/{{ item.host }}-${today}.log 2>&1
 backupResult="$?"
-if [ "$backupResult" -ne "0" ] ; then
-  f_log "[{{ item.host }}] : Backup FAILED for ${targetdir}"
-  # Globally set the backup job as failed, and a need to see in log file
-  export centos_backup_status="1"
-else
+if [ "$backupResult" -eq "0" ] || [ "$backupResult" -eq "24" ] ; then
   f_log "[{{ item.host }}] : Backup OK for ${targetdir}"
+else
+  f_log "[{{ item.host }}] : Backup FAILED for ${targetdir}"
+  # Globally set the backup job as failed, and a need to investigate in log file
+  export centos_backup_status="1"
 fi
 # Cleaning up old logfiles
 find {{ centos_backup_server_logdir }} -mtime +7 -type f -name {{ item.host }}\*.log -exec rm -f {} \;
