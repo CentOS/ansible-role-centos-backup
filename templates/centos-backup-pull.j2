@@ -49,9 +49,9 @@ test -d ${backup_repodir}/{{ item.host }}/${targetdir} || mkdir -p ${backup_repo
 rsync -avH --delete-before {{ item.src_path }}/ ${backup_repodir}/{{ item.host }}/${targetdir}/ > {{ centos_backup_server_logdir }}/{{ item.host }}-${today}.log 2>&1
 backupResult="$?"
 if [ "$backupResult" -eq "0" ] || [ "$backupResult" -eq "24" ] ; then
-  f_log "[{{ item.host }}] : Backup OK for ${targetdir}"
+  f_log "[{{ item.host }}] : Backup OK for [{{ item.host }} ${targetdir} ]"
 else
-  f_log "[{{ item.host }}] : Backup FAILED for ${targetdir}"
+  f_log "[{{ item.host }}] : Backup FAILED for [{{ item.host }} ${targetdir} ]"
   # Globally set the backup job as failed, and a need to investigate in log file
   export centos_backup_status="1"
 fi
@@ -63,7 +63,7 @@ f_log "Finished pulling from clients nodes"
 
 
 {% if centos_backup_server_restic %}
-f_log "Starting Restic job"
+f_log "Starting local Restic job"
 # This part is included only if we want local restic snapshots
 # Verify if we can reach repo or init it if empty
 restic --quiet snapshots >/dev/null 2>&1
@@ -89,6 +89,11 @@ if [ "$dow" = "Sunday" ] ; then
 fi
 {% endif %}
 
+{% if  centos_backup_server_wrapstic %}
+f_log "Calling restic for remote backup - restic role - in background mode"
+/usr/libexec/centos/wrapstic &
+f_log "Job kicked and using its own /var/log/restic.log file and zabbix alert"
+{% endif %}
 
 # We're now done
 # Removing lock at the end

@@ -3,6 +3,7 @@
 # Common settings coming from Ansible
 # Most are used by restic as ENV variables to know how to mount restic archives
 
+{% if centos_backup_server_restic %}
 export RESTIC_REPOSITORY="{{ centos_backup_server_restic_repo }}"
 export RESTIC_PASSWORD="{{ centos_backup_server_restic_pass }}"
 
@@ -10,3 +11,9 @@ echo " == Mounting ${RESTIC_REPOSITORY} under /var/lib/restic/mount with fuse ..
 echo " == When finished, CTRL-C to umount fusemount point"
 
 restic mount /var/lib/restic/mount
+
+{% else %}
+
+echo "This server doesn't use restic locally so use wrapstic if backups are on remote location"
+
+{% endif %}

@@ -24,6 +24,12 @@ centos_backup_server_restic: False
 centos_backup_server_restic_repo: /backup/snapshots
 centos_backup_server_restic_pass: boo
 
+# use restic for remote/offsite backup 
+# IF so it will just import/include the restic role and call it at end of backup
+# Warning : if set to True you'll have to define all the variables for restic role (creds/repo/etc)
+centos_backup_server_wrapstic: False
+
+
 # Where to send notifications for backup
 centos_backup_server_zabbix_srv: zabbix.domain.com
 

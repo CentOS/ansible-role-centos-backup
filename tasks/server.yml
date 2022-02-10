@@ -1,6 +1,6 @@
 - include_role: 
     name: restic
-  when: centos_backup_server_restic 
+  when: centos_backup_server_restic or centos_backup_server_wrapstic
 
 - name: Ensuring we have needed directories
   file:
