@@ -11,6 +11,7 @@ backup_logdir="{{ centos_backup_server_logdir }}"
 logfile="{{ centos_backup_server_logdir }}/centos-backup-pull.log"
 today=$(date +%Y%m%d%H%M)
 lock_file="/var/tmp/centos-backup-pull.lck"
+rsync_timeout="180"
 {% if centos_backup_server_restic %}
 export RESTIC_REPOSITORY="{{ centos_backup_server_restic_repo }}"
 export RESTIC_PASSWORD="{{ centos_backup_server_restic_pass }}"
@@ -46,7 +47,7 @@ export centos_backup_status="0"
 f_log "[{{ item.host }}] backing up {{ item.src_path }} ..." 
 targetdir=$(echo {{ item.src_path }}|rev|cut -f 1 -d ':'|rev)
 test -d ${backup_repodir}/{{ item.host }}/${targetdir} || mkdir -p ${backup_repodir}/{{ item.host }}/${targetdir} 
-rsync -avH --delete-before {{ item.src_path }}/ ${backup_repodir}/{{ item.host }}/${targetdir}/ > {{ centos_backup_server_logdir }}/{{ item.host }}-${today}.log 2>&1
+rsync -avH --delete-before --timeout=${rsync_timeout} {{ item.src_path }}/ ${backup_repodir}/{{ item.host }}/${targetdir}/ > {{ centos_backup_server_logdir }}/{{ item.host }}-${today}.log 2>&1
 backupResult="$?"
 if [ "$backupResult" -eq "0" ] || [ "$backupResult" -eq "24" ] ; then
   f_log "[{{ item.host }}] : Backup OK for [{{ item.host }} ${targetdir} ]"
