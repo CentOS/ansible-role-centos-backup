@@ -23,6 +23,8 @@ centos_backup_server_logdir: /backup/logs
 centos_backup_server_restic: False
 centos_backup_server_restic_repo: /backup/snapshots
 centos_backup_server_restic_pass: boo
+# ssh private key on central machine for centos_backup_user above
+centos_backup_server_ssh_key:
 
 # use restic for remote/offsite backup 
 # IF so it will just import/include the restic role and call it at end of backup

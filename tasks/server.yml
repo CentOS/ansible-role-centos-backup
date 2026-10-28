@@ -31,6 +31,21 @@
   tags:
     - config
 
+- name: Ensuring correct directory
+  file:
+    path: /root/.ssh
+    state: directory
+    mode: '0700'
+    setype: ssh_home_t
+    owner: root
+
+- name: Distributing ssh key 
+  copy:
+    src: "{{ pkistore }}/ssh/{{ centos_backup_server_ssh_key }}"
+    dest: /root/.ssh/id_rsa
+    mode: "0600"
+    owner: root
+
 - name: Cron job for centos-backup-pull
   cron:
     name: "CentOS central backup"
